@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
 
@@ -14,6 +15,19 @@ import (
 // It is created by embedding app.Compo into a struct.
 type MovingClouds struct {
 	app.Compo
+	clouds []*draggableButton
+}
+
+func (mc *MovingClouds) OnInit() {
+	mc.clouds = make([]*draggableButton, 4)
+	for i := range mc.clouds {
+		mc.clouds[i] = &draggableButton{
+			Image: "/web/cloud.png",
+		}
+	}
+}
+
+func (mc *MovingClouds) OnMount(ctx app.Context) {
 }
 
 type draggableButton struct {
@@ -26,6 +40,22 @@ type draggableButton struct {
 	Image       string
 	onMouseMove app.Func
 	onMouseUp   app.Func
+}
+
+func (b *draggableButton) OnMount(ctx app.Context) {
+	ctx.Dispatch(func(ctx app.Context) {
+		w, h := app.Window().Size()
+		if w <= 0 {
+			w = 800
+		}
+		if h <= 0 {
+			h = 600
+		}
+
+		b.left = rand.Intn(w - 100)
+		b.top = rand.Intn(h - 100)
+		ctx.Update()
+	})
 }
 
 func (b *draggableButton) Render() app.UI {
@@ -103,26 +133,9 @@ func (mc *MovingClouds) Render() app.UI {
 		Style("min-height", "100vh").
 		Style("position", "relative").
 		Body(
-			&draggableButton{
-				Image: "/web/cloud.png",
-				left:  50,
-				top:   50,
-			},
-			&draggableButton{
-				Image: "/web/cloud.png",
-				left:  100,
-				top:   50,
-			},
-			&draggableButton{
-				Image: "/web/cloud.png",
-				left:  150,
-				top:   50,
-			},
-			&draggableButton{
-				Image: "/web/cloud.png",
-				left:  200,
-				top:   50,
-			},
+			app.Range(mc.clouds).Slice(func(i int) app.UI {
+				return mc.clouds[i]
+			}),
 		)
 }
 
